@@ -7,7 +7,7 @@
  * This file implements an "upgraded" version of the game breakout
  * I added:
  * the ball speeds up if it hits the orange layer (only once, resets after death)
- * the bal x velocity changes based on where the ball hits the paddle
+ * the ball x velocity changes based on where the ball hits the paddle
  * chance to add a penalty row to the main body of bricks every time the player destroys a brick. 
  * chance to add a savior row below the paddle every time the player destroys a brick
  * that color changing stuff on win and loss is still in here too, but is also in my basic version
