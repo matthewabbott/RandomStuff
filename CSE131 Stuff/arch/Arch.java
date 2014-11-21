@@ -2,8 +2,8 @@
  * File: Arch.java
  * -----------------------
  * Modified by Matthew Abbott
- * Most of the code is mine, but there are some things that were provided
- * for me since this was a project created for students in CSE131 at WUSTL
+ * This class was not created by me. I created all of the code inside Round
+ * and all of the methods that aren't StdDraw methods which were called.
  * 
  * The arch class initializes all of the masses for an arch, draws them,
  * then modifies them as per the gravity and spring forces acting on them.
@@ -36,7 +36,7 @@ public class Arch implements ActionListener {
 
 	private final double GRAVITY = -9.8; // acceleration due to gravity (m/s^2)
 	private final double SPRING_CONSTANT = 10; // k in newtons/meter
-	private final double STEP_INTERVAL = .005;
+	private final double STEP_INTERVAL = .4;
 
 	private Mass[] allMasses;
 
@@ -104,25 +104,35 @@ public class Arch implements ActionListener {
 		StdDraw.clear();
 
 		computeYForces();
+		projectedMotion();
+		midpointRecomputation();
 		applyForces();
 
 		drawMasses();
 		drawStrings();
-		
+
 		StdDraw.show(0);
 	}
 
+	/**
+	 * computeYForces is a helper method for round that figures out what the
+	 * forces on each mass should be based on how much the strings are currently
+	 * stretched. It does this by using the given spring constant and the
+	 * distance of the mass from its neighbors. It does not compute forces on
+	 * the initial and final masses, as those are fixed. It also accounts for
+	 * the force of gravity.
+	 */
 	private void computeYForces() {
 		double leftSpringForceY = 0;
 		double rightSpringForceY = 0;
 		for (int i = 1; i < allMasses.length - 1; i++) {
 
-//			double leftDistance = distance(allMasses[i].getX(),
-//					allMasses[i].getY(), allMasses[i - 1].getX(),
-//					allMasses[i - 1].getY());
-//			double rightDistance = distance(allMasses[i].getX(),
-//					allMasses[i].getY(), allMasses[i + 1].getX(),
-//					allMasses[i + 1].getY());
+			// double leftDistance = distance(allMasses[i].getX(),
+			// allMasses[i].getY(), allMasses[i - 1].getX(),
+			// allMasses[i - 1].getY());
+			// double rightDistance = distance(allMasses[i].getX(),
+			// allMasses[i].getY(), allMasses[i + 1].getX(),
+			// allMasses[i + 1].getY());
 
 			double leftDeltaY = allMasses[1].getY() - allMasses[i - 1].getY();
 			double rightDeltaY = allMasses[i].getY() - allMasses[i + 1].getY();
@@ -130,8 +140,8 @@ public class Arch implements ActionListener {
 			// cosine of theta is the adjacent side of a triangle over the
 			// hypotenuse
 			// the hypotenuse is the total distance
-//			double leftCosTheta = leftDeltaY / leftDistance;
-//			double rightCosTheta = rightDeltaY / rightDistance;
+			// double leftCosTheta = leftDeltaY / leftDistance;
+			// double rightCosTheta = rightDeltaY / rightDistance;
 
 			// Fspring = -k x
 			leftSpringForceY = -1 * rightSpringForceY;
@@ -146,20 +156,76 @@ public class Arch implements ActionListener {
 		}
 	}
 
-	private double distance(double x0, double y0, double x1, double y1) {
-		return Math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
-	}
-
+	/**
+	 * applyForces is a helper method for round that causes the masses to change
+	 * location and velocity based on what the acceleration of that mass is, a
+	 * value determined by computeYforces and the methods in the mass class.
+	 */
 	private void applyForces() {
 		for (int i = 1; i < allMasses.length - 1; i++) {
 
 			allMasses[i].move(STEP_INTERVAL);
 			allMasses[i].nextStepVelocity(STEP_INTERVAL);
+
 		}
 	}
 
-	//everything below here was provided for me and is accordingly not written by me
-	
+	/**
+	 * projectedMotion is a modified version of the applyForces method that
+	 * simply doesn't recompute the velocity. It exists so that the program can
+	 * do the midpoint recomputation of the acceleration for the mass. It shows
+	 * where the mass would be if it continued to accelerate and changes the y
+	 * position. Then midpointRecomputation is called.
+	 */
+	private void projectedMotion() {
+		for (int i = 1; i < allMasses.length - 1; i++) {
+
+			allMasses[i].move(STEP_INTERVAL);
+
+		}
+	}
+
+	/**
+	 * midpointRecomputation is similar to the computeYForces method, but
+	 * instead it uses the new Y value to figure out what the acceleration of
+	 * the mass would be in the next step and changes ay so that it is the
+	 * average of the acceleration of the mass in its existing position and the
+	 * acceleration at what its next position would have been if its
+	 * acceleration remained constant. This acceleration is an approximation of
+	 * the instantaneous acceleration of the mass at any time over the interval
+	 * STEP_LENGTH. Performing this approximation prevents the arch from failing
+	 * catasrophically by additively overestimating each force and adding energy
+	 * to the system, to the point where the masses in the simulation fly out of
+	 * control.
+	 * 
+	 * The previous version of this simulation could be run with smaller step
+	 * lengths and take a long time to fail, but it would fail eventually. The
+	 * previous version, in spite of the changes to the mass class, can still be
+	 * run if the projectedMotion and midPointRecomputation method calls are
+	 * removed.
+	 */
+	private void midpointRecomputation() {
+
+		double rightSpringForceY = 0;
+		double leftSpringForceY = 0;
+		for (int i = 1; i < allMasses.length - 1; i++) {
+
+			double leftDeltaY = allMasses[1].getY() - allMasses[i - 1].getY();
+			double rightDeltaY = allMasses[i].getY() - allMasses[i + 1].getY();
+
+			leftSpringForceY = -1 * rightSpringForceY;
+			if (i == 1) {
+				leftSpringForceY = -1 * SPRING_CONSTANT * leftDeltaY;
+			}
+			rightSpringForceY = -1 * SPRING_CONSTANT * rightDeltaY;
+
+			allMasses[i].recomputeAY(leftSpringForceY, rightSpringForceY,
+					GRAVITY);
+			allMasses[i].restoreY();
+
+		}
+	}
+
 	/**
 	 * Start the swing timer
 	 */
